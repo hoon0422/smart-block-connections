@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Build Output
+/dist/
+/main.js
+/styles.css
+# Note: manifest.json is a source file and should be committed
+
+# Testing
+/tests/e2e/.tmp-vault/
+/playwright-report/
+/test-results/
+/test-vault-backups/
+/tests/unit/coverage/
+
+# Local state & IDEs
+.omc/
+.vscode/
+.idea/
+.DS_Store
+*.log
+.env
+
+# Obsidian local config (if any)
+.obsidian/
