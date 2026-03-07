@@ -1,0 +1,9 @@
+{
+  "id": "sc-block-explorer",
+  "name": "Smart Block Connections",
+  "version": "1.0.0",
+  "minAppVersion": "1.1.0",
+  "description": "Right-click any block to see semantically related blocks and files from your vault, powered by Smart Connections.",
+  "author": "Younghoon",
+  "isDesktopOnly": true
+}

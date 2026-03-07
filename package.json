@@ -1,0 +1,22 @@
+{
+  "name": "sc-block-explorer",
+  "version": "1.0.0",
+  "description": "Obsidian plugin for exploring block-level semantic connections via Smart Connections",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "dev": "node esbuild.config.mjs --watch",
+    "test": "vitest run",
+    "test:e2e": "playwright test --config tests/playwright.config.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@types/node": "^20.0.0",
+    "esbuild": "^0.20.0",
+    "fs-extra": "^11.2.0",
+    "obsidian": "^1.5.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  },
+  "type": "module"
+}

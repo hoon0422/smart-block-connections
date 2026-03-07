@@ -4,8 +4,7 @@ node_modules/
 # Build Output
 /dist/
 /main.js
-/styles.css
-# Note: manifest.json is a source file and should be committed
+# Note: manifest.json and styles.css are source files and should be committed
 
 # Testing
 /tests/e2e/.tmp-vault/
