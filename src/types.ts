@@ -33,12 +33,14 @@ export interface SCBESettings {
   resultType: "blocks" | "sources";
   resultLimit: number;
   minScore: number;
+  excludeSelf: boolean;
 }
 
 export const DEFAULT_SETTINGS: SCBESettings = {
   resultType: "blocks",
   resultLimit: 20,
   minScore: 0.0,
+  excludeSelf: true,
 };
 
 /**

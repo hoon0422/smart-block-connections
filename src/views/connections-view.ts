@@ -5,6 +5,11 @@ import { formatResultsAsMarkdown } from "../utils/formatting";
 
 export const VIEW_TYPE_CONNECTIONS = "scbe-connections-view";
 
+/** Strip SC's sub-block index suffix like `#{1}`, `#{2}` from a block key. */
+function stripSubBlockSuffix(key: string): string {
+  return key.replace(/#\{\d+\}$/, "");
+}
+
 // Minimal plugin interface for isolated development
 interface SCBlockExplorerPlugin {
   bridge: { findConnections(vec: number[], opts: FindConnectionsOptions): Promise<ConnectionResult[]> };
@@ -32,6 +37,34 @@ export class ConnectionsView extends ItemView {
     this.currentBlock = block;
     this.results = results;
     this.render();
+  }
+
+  private getFilteredResults(): ConnectionResult[] {
+    let results = this.results;
+
+    if (this.plugin.settings.excludeSelf && this.currentBlock) {
+      const blockPath = this.currentBlock.path;
+      results = results.filter((r) => {
+        // Exclude the exact same block
+        if (r.key === this.currentBlock!.key) return false;
+        // Exclude results from the parent file (check both path and key prefix)
+        if (r.path === blockPath) return false;
+        if (r.key.startsWith(blockPath + "#")) return false;
+        return true;
+      });
+    }
+
+    // Deduplicate by stripped key (e.g. "note.md#A" and "note.md#A#{1}"),
+    // keeping the entry with the higher score
+    const seen = new Map<string, ConnectionResult>();
+    for (const r of results) {
+      const normalized = stripSubBlockSuffix(r.key);
+      const existing = seen.get(normalized);
+      if (!existing || r.score > existing.score) {
+        seen.set(normalized, r);
+      }
+    }
+    return Array.from(seen.values());
   }
 
   private render() {
@@ -77,19 +110,31 @@ export class ConnectionsView extends ItemView {
       }
     });
 
+    // Exclude-self toggle
+    const excludeBtn = controls.createEl("button", {
+      text: this.plugin.settings.excludeSelf ? "Self excluded" : "Self included",
+      cls: `scbe-toggle${this.plugin.settings.excludeSelf ? " is-active" : ""}`
+    });
+    excludeBtn.addEventListener("click", async () => {
+      this.plugin.settings.excludeSelf = !this.plugin.settings.excludeSelf;
+      await this.plugin.saveSettings();
+      this.render();
+    });
+
     // Copy all button
     const copyBtn = controls.createEl("button", { text: "Copy list", cls: "scbe-copy" });
     copyBtn.addEventListener("click", () => this.copyResultsToClipboard());
 
     // --- Results list ---
     const list = el.createDiv({ cls: "scbe-results" });
+    const filtered = this.getFilteredResults();
 
-    if (this.results.length === 0) {
+    if (filtered.length === 0) {
       list.createEl("div", { text: "No connections found.", cls: "scbe-empty" });
       return;
     }
 
-    for (const result of this.results) {
+    for (const result of filtered) {
       const item = list.createDiv({ cls: "scbe-result-item" });
 
       // Score badge
@@ -98,9 +143,10 @@ export class ConnectionsView extends ItemView {
         cls: "scbe-score"
       });
 
-      // Title (clickable → navigate)
+      // Title (clickable → navigate) — strip SC sub-block suffix for display
+      const displayKey = stripSubBlockSuffix(result.key);
       const title = item.createEl("a", {
-        text: result.key,
+        text: displayKey,
         cls: "scbe-result-title",
         href: "#"
       });
@@ -138,7 +184,7 @@ export class ConnectionsView extends ItemView {
       });
       insertBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        this.insertLink(result.key);
+        this.insertLink(displayKey);
       });
       const insertWithTextBtn = actions.createEl("button", {
         text: "Insert with text",
@@ -146,7 +192,7 @@ export class ConnectionsView extends ItemView {
       });
       insertWithTextBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        this.insertLinkWithText(result.key);
+        this.insertLinkWithText(displayKey);
       });
     }
   }
@@ -200,16 +246,17 @@ export class ConnectionsView extends ItemView {
   }
 
   private navigateToResult(result: ConnectionResult) {
-    this.app.workspace.openLinkText(result.key, "", false);
+    this.app.workspace.openLinkText(stripSubBlockSuffix(result.key), "", false);
   }
 
   private copyResultsToClipboard() {
+    const filtered = this.getFilteredResults();
     const text = formatResultsAsMarkdown(
       this.currentBlock?.key ?? "Unknown block",
-      this.results
+      filtered
     );
     navigator.clipboard.writeText(text);
-    new Notice(`Copied ${this.results.length} connections to clipboard`);
+    new Notice(`Copied ${filtered.length} connections to clipboard`);
   }
 
   private renderEmpty() {

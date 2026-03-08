@@ -20,6 +20,10 @@
 .scbe-controls button {
   font-size: 0.75em;
 }
+.scbe-toggle.is-active {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
 .scbe-results {
   padding: 4px 0;
 }

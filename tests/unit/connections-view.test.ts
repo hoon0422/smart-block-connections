@@ -64,7 +64,7 @@ function createMockEl(): any {
       const results: any[] = [];
       const cls = sel.replace(".", "");
       function search(node: any) {
-        if (node.className === cls) results.push(node);
+        if (node.className === cls || (node.className && node.className.split(" ").includes(cls))) results.push(node);
         for (const c of (node.children || [])) search(c);
       }
       search(el);
@@ -98,7 +98,7 @@ function createView(activeEditor?: any, markdownLeaves?: any[]) {
   };
   const plugin: any = {
     bridge: { findConnections: vi.fn() },
-    settings: { resultType: "blocks", resultLimit: 20, minScore: 0 },
+    settings: { resultType: "blocks", resultLimit: 20, minScore: 0, excludeSelf: true },
     saveSettings: vi.fn(),
   };
   return new ConnectionsView(leaf, plugin);
@@ -111,6 +111,7 @@ describe("ConnectionsView - Insert button", () => {
 
   it("renders Insert and Insert with text buttons for each result", () => {
     const view = createView();
+    (view as any).plugin.settings.excludeSelf = false;
     const block = makeBlock("note.md#Intro");
     const results = [makeResult("note.md#A", 0.9), makeResult("note.md#B", 0.8)];
 
@@ -202,5 +203,83 @@ describe("ConnectionsView - Insert button", () => {
       " [[file.md#Section > Subsection]]",
       { line: 0, ch: 0 }
     );
+  });
+});
+
+describe("ConnectionsView - Exclude self filter", () => {
+  it("filters out results matching current block key when excludeSelf is true", () => {
+    const view = createView();
+    const block = makeBlock("note.md#Intro");
+    const results = [
+      makeResult("note.md#Intro", 1.0),  // same block
+      makeResult("other.md#A", 0.9),
+    ];
+
+    view.setResults(block, results);
+
+    const titles = (view as any).contentEl.querySelectorAll("scbe-result-title");
+    expect(titles.length).toBe(1);
+    expect(titles[0].textContent).toBe("other.md#A");
+  });
+
+  it("filters out results from the same parent file when excludeSelf is true", () => {
+    const view = createView();
+    const block = makeBlock("note.md#Intro");
+    const results = [
+      makeResult("note.md#Section2", 0.95),  // same file, different block
+      makeResult("other.md#A", 0.9),
+    ];
+
+    view.setResults(block, results);
+
+    const titles = (view as any).contentEl.querySelectorAll("scbe-result-title");
+    expect(titles.length).toBe(1);
+    expect(titles[0].textContent).toBe("other.md#A");
+  });
+
+  it("does not filter results when excludeSelf is false", () => {
+    const view = createView();
+    (view as any).plugin.settings.excludeSelf = false;
+    const block = makeBlock("note.md#Intro");
+    const results = [
+      makeResult("note.md#Intro", 1.0),
+      makeResult("note.md#Section2", 0.95),
+      makeResult("other.md#A", 0.9),
+    ];
+
+    view.setResults(block, results);
+
+    const titles = (view as any).contentEl.querySelectorAll("scbe-result-title");
+    expect(titles.length).toBe(3);
+  });
+
+  it("renders exclude-self toggle button with correct label", () => {
+    const view = createView();
+    const block = makeBlock("note.md#Intro");
+    view.setResults(block, [makeResult("other.md#A", 0.9)]);
+
+    // Find toggle buttons - there should be two: blocks/files toggle and exclude-self toggle
+    const toggleBtns = (view as any).contentEl.querySelectorAll("scbe-toggle");
+    // The second toggle with is-active class is the exclude-self button
+    const excludeBtn = toggleBtns.find((btn: any) =>
+      btn.textContent === "Self excluded" || btn.textContent === "Self included"
+    );
+    expect(excludeBtn).toBeDefined();
+    expect(excludeBtn.textContent).toBe("Self excluded");
+  });
+
+  it("shows 'No connections found' when all results are filtered out", () => {
+    const view = createView();
+    const block = makeBlock("note.md#Intro");
+    const results = [
+      makeResult("note.md#Intro", 1.0),
+      makeResult("note.md#Other", 0.9),
+    ];
+
+    view.setResults(block, results);
+
+    const empty = (view as any).contentEl.querySelectorAll("scbe-empty");
+    expect(empty.length).toBe(1);
+    expect(empty[0].textContent).toBe("No connections found.");
   });
 });

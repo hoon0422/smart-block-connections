@@ -103,7 +103,7 @@ test.describe("Sidebar View", () => {
     // Dismiss SC notifications that overlay sidebar buttons
     await dismissNotices(page);
 
-    const toggleBtn = page.locator(SEL.toggleBtn);
+    const toggleBtn = page.locator(SEL.toggleBtn, { hasText: /Showing/ });
     await expect(toggleBtn).toContainText("blocks");
 
     await toggleBtn.click({ force: true });

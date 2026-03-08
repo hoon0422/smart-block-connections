@@ -197,6 +197,18 @@ class SCBESettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
+      .setName("Exclude self")
+      .setDesc("Hide the current block and its parent file from results")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.excludeSelf)
+          .onChange(async (value) => {
+            this.plugin.settings.excludeSelf = value;
+            await this.plugin.saveSettings();
+          })
+      );
+
+    new Setting(containerEl)
       .setName("Minimum score")
       .setDesc("Filter out connections below this similarity threshold (0.0–1.0)")
       .addSlider((slider) =>
