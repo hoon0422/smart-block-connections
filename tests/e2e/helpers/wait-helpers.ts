@@ -143,6 +143,23 @@ export async function waitForSCBlocks(page: Page, timeout = 30000) {
 }
 
 /**
+ * Select a range of text in the active editor using Obsidian's editor API.
+ */
+export async function selectText(page: Page, fromLine: number, fromCh: number, toLine: number, toCh: number) {
+  await page.evaluate(({ from, to }) => {
+    const app = (window as any).app;
+    const view = app.workspace.activeLeaf?.view;
+    if (view?.editor) {
+      view.editor.setSelection(
+        { line: from.line, ch: from.ch },
+        { line: to.line, ch: to.ch }
+      );
+    }
+  }, { from: { line: fromLine, ch: fromCh }, to: { line: toLine, ch: toCh } });
+  await page.waitForTimeout(300);
+}
+
+/**
  * Trigger "show-block-connections" command via Obsidian's command API.
  * CDP right-clicks don't trigger Obsidian's native context menu in Electron,
  * so we use the command as the reliable way to trigger the full flow.
