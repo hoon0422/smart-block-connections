@@ -1,4 +1,5 @@
-import { ItemView, WorkspaceLeaf, Notice } from "obsidian";
+import { ItemView, WorkspaceLeaf, Notice, Modal, Setting } from "obsidian";
+import type { Editor } from "obsidian";
 import type { ConnectionResult, ResolvedBlock, SCBESettings, FindConnectionsOptions } from "../types";
 import { formatResultsAsMarkdown } from "../utils/formatting";
 
@@ -128,7 +129,74 @@ export class ConnectionsView extends ItemView {
           cls: "scbe-snippet"
         });
       }
+
+      // Insert buttons
+      const actions = item.createDiv({ cls: "scbe-result-actions" });
+      const insertBtn = actions.createEl("button", {
+        text: "Insert",
+        cls: "scbe-insert"
+      });
+      insertBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.insertLink(result.key);
+      });
+      const insertWithTextBtn = actions.createEl("button", {
+        text: "Insert with text",
+        cls: "scbe-insert-text"
+      });
+      insertWithTextBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.insertLinkWithText(result.key);
+      });
     }
+  }
+
+  private getEditor(): { editor: Editor; fileName: string } | null {
+    // activeEditor may be null when sidebar has focus, so also check
+    // the most recent markdown leaf as a fallback
+    let editor = this.app.workspace.activeEditor?.editor;
+    let fileName = (this.app.workspace.activeEditor as any)?.file?.basename;
+
+    if (!editor) {
+      const leaves = this.app.workspace.getLeavesOfType("markdown");
+      for (const leaf of leaves) {
+        const view = leaf.view as any;
+        if (view?.editor) {
+          editor = view.editor;
+          fileName = view.file?.basename;
+          break;
+        }
+      }
+    }
+
+    if (!editor) return null;
+    return { editor, fileName: fileName ?? "current note" };
+  }
+
+  private insertLink(key: string) {
+    const result = this.getEditor();
+    if (!result) {
+      new Notice("No active editor to insert into.");
+      return;
+    }
+    const { editor, fileName } = result;
+    const pos = editor.getCursor("to");
+    editor.replaceRange(` [[${key}]]`, pos);
+    new Notice(`Inserted link to ${key} in ${fileName}`);
+  }
+
+  private insertLinkWithText(key: string) {
+    const result = this.getEditor();
+    if (!result) {
+      new Notice("No active editor to insert into.");
+      return;
+    }
+    new InsertLinkModal(this.app, key, (displayText) => {
+      const { editor, fileName } = result;
+      const pos = editor.getCursor("to");
+      editor.replaceRange(` [[${key}|${displayText}]]`, pos);
+      new Notice(`Inserted link to ${key} in ${fileName}`);
+    }).open();
   }
 
   private navigateToResult(result: ConnectionResult) {
@@ -150,5 +218,61 @@ export class ConnectionsView extends ItemView {
       text: 'Right-click a block and select "See relevant connections".',
       cls: "scbe-empty-state"
     });
+  }
+}
+
+class InsertLinkModal extends Modal {
+  private key: string;
+  private onSubmit: (displayText: string) => void;
+
+  constructor(app: any, key: string, onSubmit: (displayText: string) => void) {
+    super(app);
+    this.key = key;
+    this.onSubmit = onSubmit;
+  }
+
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.createEl("h3", { text: "Insert link with display text" });
+    contentEl.createEl("p", {
+      text: `Link: ${this.key}`,
+      cls: "scbe-modal-link"
+    });
+
+    let inputValue = "";
+    new Setting(contentEl)
+      .setName("Display text")
+      .addText((text) => {
+        text.setPlaceholder("Enter display text...");
+        text.onChange((value) => { inputValue = value; });
+        // Submit on Enter
+        text.inputEl.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            if (inputValue.trim()) {
+              this.onSubmit(inputValue.trim());
+              this.close();
+            }
+          }
+        });
+        // Auto-focus the input
+        setTimeout(() => text.inputEl.focus(), 50);
+      });
+
+    new Setting(contentEl)
+      .addButton((btn) => {
+        btn.setButtonText("Insert")
+          .setCta()
+          .onClick(() => {
+            if (inputValue.trim()) {
+              this.onSubmit(inputValue.trim());
+              this.close();
+            }
+          });
+      });
+  }
+
+  onClose() {
+    this.contentEl.empty();
   }
 }
