@@ -8,6 +8,7 @@ node_modules/
 
 # Testing
 /tests/e2e/.tmp-vault/
+/tests/e2e/screenshots/
 /playwright-report/
 /test-results/
 /test-vault-backups/

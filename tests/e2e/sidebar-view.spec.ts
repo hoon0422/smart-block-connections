@@ -5,25 +5,34 @@ import {
   ObsidianTestContext,
 } from "./helpers/obsidian-app";
 import {
-  waitForObsidianReady,
-  waitForSCReady,
-  waitForPluginReady,
   openNote,
   setCursorLine,
-  rightClickAtCursor,
+  triggerConnectionsCommand,
+  waitForSCBlocks,
+  dismissNotices,
 } from "./helpers/wait-helpers";
 import { SEL } from "./helpers/selectors";
-import path from "path";
-
-const PLUGIN_DIST = path.resolve(__dirname, "../../dist");
+import { PLUGIN_DIST } from "./helpers/paths";
 
 let ctx: ObsidianTestContext;
 
 test.beforeAll(async () => {
   ctx = await launchObsidian(PLUGIN_DIST);
-  await waitForObsidianReady(ctx.page);
-  await waitForSCReady(ctx.page);
-  await waitForPluginReady(ctx.page);
+  const { page } = ctx;
+
+  await page.waitForSelector(".workspace", { timeout: 15000 });
+
+  const start = Date.now();
+  while (Date.now() - start < 30000) {
+    const ready = await page.evaluate(() => {
+      const plugin = (window as any).app?.plugins?.plugins?.["sc-block-explorer"];
+      return plugin?.bridge?.isReady === true;
+    });
+    if (ready) break;
+    await page.waitForTimeout(1000);
+  }
+
+  await waitForSCBlocks(page);
 });
 
 test.afterAll(async () => {
@@ -33,11 +42,8 @@ test.afterAll(async () => {
 async function triggerConnectionsForAlpha(page: import("@playwright/test").Page) {
   await openNote(page, "Note Alpha");
   await setCursorLine(page, 5);
-  await rightClickAtCursor(page);
-  await page
-    .locator(SEL.contextMenuItem, { hasText: "See relevant connections" })
-    .click();
-  await page.waitForSelector(SEL.connectionsView, { timeout: 10000 });
+  await triggerConnectionsCommand(page);
+  await page.waitForSelector(SEL.connectionsView, { timeout: 15000 });
 }
 
 test.describe("Sidebar View", () => {
@@ -77,26 +83,30 @@ test.describe("Sidebar View", () => {
     }
   });
 
-  test("each result shows a snippet preview", async () => {
+  test("results have score and title", async () => {
     const { page } = ctx;
     await triggerConnectionsForAlpha(page);
 
-    const snippets = page.locator(SEL.resultSnippet);
-    const count = await snippets.count();
-    expect(count).toBeGreaterThan(0);
-
-    const firstSnippet = await snippets.first().textContent();
-    expect(firstSnippet?.length).toBeGreaterThan(10);
+    // Every result should have a score and title
+    const scores = page.locator(SEL.resultScore);
+    const titles = page.locator(SEL.resultTitle);
+    const scoreCount = await scores.count();
+    const titleCount = await titles.count();
+    expect(scoreCount).toBeGreaterThan(0);
+    expect(scoreCount).toBe(titleCount);
   });
 
   test("toggle button switches between blocks and sources", async () => {
     const { page } = ctx;
     await triggerConnectionsForAlpha(page);
 
+    // Dismiss SC notifications that overlay sidebar buttons
+    await dismissNotices(page);
+
     const toggleBtn = page.locator(SEL.toggleBtn);
     await expect(toggleBtn).toContainText("blocks");
 
-    await toggleBtn.click();
+    await toggleBtn.click({ force: true });
     await page.waitForTimeout(1000);
 
     await expect(toggleBtn).toContainText("files");

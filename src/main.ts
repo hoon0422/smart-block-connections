@@ -61,13 +61,17 @@ export default class SCBlockExplorer extends Plugin {
     // Settings tab
     this.addSettingTab(new SCBESettingTab(this.app, this));
 
-    // Delay bridge init — SC may not be loaded yet
+    // Delay bridge init — SC may not be loaded yet. Retry periodically.
     this.app.workspace.onLayoutReady(() => {
-      setTimeout(() => {
-        if (!this.bridge.init()) {
-          console.warn("SCBE: Smart Connections not found or not ready");
+      const tryInit = (attempt: number) => {
+        if (this.bridge.init()) return;
+        if (attempt < 10) {
+          setTimeout(() => tryInit(attempt + 1), 3000);
+        } else {
+          console.warn("SCBE: Smart Connections not found or not ready after retries");
         }
-      }, 3000);
+      };
+      setTimeout(() => tryInit(1), 3000);
     });
   }
 
