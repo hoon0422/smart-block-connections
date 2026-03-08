@@ -50,6 +50,23 @@
   margin-top: 4px;
   line-height: 1.4;
 }
+.scbe-result-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+}
+.scbe-insert,
+.scbe-insert-text {
+  font-size: 0.7em;
+  padding: 1px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.scbe-modal-link {
+  font-size: 0.85em;
+  color: var(--text-muted);
+  margin: 4px 0 12px;
+}
 .scbe-empty-state {
   padding: 24px;
   text-align: center;

@@ -17,6 +17,8 @@ export const SEL = {
   resultSnippet: ".scbe-snippet",
   toggleBtn: ".scbe-toggle",
   copyBtn: ".scbe-copy",
+  insertBtn: ".scbe-insert",
+  insertTextBtn: ".scbe-insert-text",
   emptyState: ".scbe-empty-state",
   header: ".scbe-header",
   sourceKey: ".scbe-source-key",
