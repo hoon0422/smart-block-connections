@@ -23,6 +23,7 @@ export interface ResolvedBlock {
   lineStart?: number;
   lineEnd?: number;
   content?: string;
+  source?: "selection" | "block";
 }
 
 /**

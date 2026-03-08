@@ -6,7 +6,8 @@ A personal Obsidian plugin that enables users to right-click any block (heading,
 
 ### Core Features
 
-- **Context Menu Integration:** "See relevant connections" option on block right-click.
+- **Context Menu Integration:** "See relevant connections" option on right-click.
+- **Selection-Based Search:** Select text to find connections based on that specific selection (embeds on-the-fly). Falls back to block-based search when no text is selected.
 - **Sidebar Results:** A ranked list of results (blocks or files) with titles, scores, and preview snippets.
 - **Navigation & Preview:** Navigate to results, hover-preview with Cmd/Ctrl, or copy the entire results list as Markdown.
 

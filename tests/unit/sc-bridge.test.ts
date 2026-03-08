@@ -177,22 +177,22 @@ describe("SCBridgeService.findConnections()", () => {
 describe("SCBridgeService.embedText()", () => {
   it("delegates to embed model and returns the vec", async () => {
     const expectedVec = [0.1, 0.2, 0.3];
-    const embed = vi.fn().mockResolvedValue([{ vec: expectedVec }]);
-    const env = makeEnv({ smart_embed_model: { embed } });
+    const embed = vi.fn().mockResolvedValue({ vec: expectedVec });
+    const env = makeEnv({ smart_embed_model: { embed, is_loaded: true, load: vi.fn() } });
     const app = makeApp({ env });
     const service = new SCBridgeService(app);
     service.init();
 
     const result = await service.embedText("hello world");
 
-    expect(embed).toHaveBeenCalledWith({ input: ["hello world"] });
+    expect(embed).toHaveBeenCalledWith({ embed_input: "hello world" });
     expect(result).toEqual(expectedVec);
   });
 
   it("also handles embed result in data[0].vec shape", async () => {
     const expectedVec = [0.4, 0.5, 0.6];
     const embed = vi.fn().mockResolvedValue({ data: [{ vec: expectedVec }] });
-    const env = makeEnv({ smart_embed_model: { embed } });
+    const env = makeEnv({ smart_embed_model: { embed, is_loaded: true, load: vi.fn() } });
     const app = makeApp({ env });
     const service = new SCBridgeService(app);
     service.init();

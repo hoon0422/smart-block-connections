@@ -74,13 +74,22 @@ export class SCBridgeService {
   }
 
   async embedText(text: string): Promise<number[]> {
-    const model = this.env?.smart_embed_model;
+    // SC stores the embed model on collections (smart_blocks.embed_model)
+    // or on the env directly (smart_embed_model). Try both paths.
+    const model =
+      this.env?.smart_blocks?.embed_model ??
+      this.env?.smart_sources?.embed_model ??
+      this.env?.smart_embed_model;
     if (!model) {
       throw new Error("SCBE: smart_embed_model not available");
     }
 
-    const result = await model.embed({ input: [text] });
-    const vec = result?.[0]?.vec ?? result?.data?.[0]?.vec;
+    if (!model.is_loaded) {
+      await model.load();
+    }
+
+    const result = await model.embed({ embed_input: text });
+    const vec = result?.vec ?? result?.[0]?.vec ?? result?.data?.[0]?.vec;
     if (!vec) {
       throw new Error("SCBE: embed result missing vec");
     }

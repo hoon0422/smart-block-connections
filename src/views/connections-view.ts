@@ -41,7 +41,13 @@ export class ConnectionsView extends ItemView {
     const header = el.createDiv({ cls: "scbe-header" });
     header.createEl("h4", { text: "Connections for:", cls: "scbe-title" });
     header.createEl("div", {
-      text: this.currentBlock?.key ?? "Unknown block",
+      text: (() => {
+        if (this.currentBlock?.source === "selection") {
+          const content = this.currentBlock?.content ?? "";
+          return content.length > 80 ? `Selected: ${content.slice(0, 80)}...` : `Selected: ${content}`;
+        }
+        return this.currentBlock?.key ?? "Unknown block";
+      })(),
       cls: "scbe-source-key"
     });
 

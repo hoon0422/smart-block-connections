@@ -52,7 +52,7 @@ export default class SCBlockExplorer extends Plugin {
     // Command palette alternative
     this.addCommand({
       id: "show-block-connections",
-      name: "See relevant connections for current block",
+      name: "See relevant connections",
       editorCallback: async (editor: Editor, view: MarkdownView) => {
         await this.showConnectionsForCursor(editor, view);
       },
@@ -84,28 +84,36 @@ export default class SCBlockExplorer extends Plugin {
     const file = view.file;
     if (!file) return;
 
-    // Step 1: Resolve block
-    let resolved: ResolvedBlock | null = this.resolver.resolve(editor, file);
+    let resolved: ResolvedBlock | null = null;
 
-    // Step 2: Fallback to selected text if block not found or has no vec
-    if (!resolved || !resolved.vec) {
-      const selection = editor.getSelection();
-      if (!selection) {
-        new Notice("Could not identify a block at cursor position.");
-        return;
-      }
+    // Step 1: Selection-first priority
+    const selection = editor.getSelection();
+    const trimmed = selection ? selection.trim() : "";
+    if (trimmed) {
+      const toEmbed = trimmed.slice(0, 25000);
+      let vec: number[];
       try {
-        const vec = await this.bridge.embedText(selection);
-        resolved = {
-          key: `${file.path}#selection`,
-          vec,
-          path: file.path,
-          content: selection,
-        };
+        vec = await this.bridge.embedText(toEmbed);
       } catch (e) {
         new Notice("Embedding model unavailable. Cannot find connections.");
         return;
       }
+      resolved = {
+        key: `${file.path}#selection`,
+        vec,
+        path: file.path,
+        content: trimmed,
+        source: "selection",
+      };
+    } else {
+      // Step 2: Fall back to block at cursor
+      const block = this.resolver.resolve(editor, file);
+      if (!block || !block.vec) {
+        new Notice("Could not identify a block at cursor position.");
+        return;
+      }
+      block.source = "block";
+      resolved = block;
     }
 
     // Step 3: Find connections

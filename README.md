@@ -5,7 +5,8 @@ An Obsidian plugin that lets you right-click any block (heading, paragraph, list
 ## Features
 
 - **Context menu integration** — "See relevant connections" appears on right-click in the editor
-- **Command palette** — Also available as "See relevant connections for current block"
+- **Selection-based search** — Select any text to find connections based on that specific selection, not just the enclosing block
+- **Command palette** — Also available as "See relevant connections"
 - **Sidebar results** — Ranked list with similarity scores and preview snippets
 - **Toggle view** — Switch between block-level and file-level results
 - **Navigate** — Click any result to open that note
@@ -39,12 +40,14 @@ ln -sf /path/to/smart-block-connections/dist \
 ## Usage
 
 1. Open any note in the editor
-2. Place your cursor in a block (or select text)
+2. **Select text** you want to find connections for, or place your cursor in a block
 3. Right-click → **"See relevant connections"** (or use the command palette)
 4. The sidebar panel opens with ranked results
 5. Click a result to navigate, or use the copy/toggle buttons
 
-If the cursor is on a block that Smart Connections has already embedded, the plugin uses that embedding directly. If not (e.g., new content), it falls back to embedding the selected text on the fly.
+**How search works:**
+- **With selection** — The selected text is embedded on-the-fly and used to search. This gives precise results based on exactly what you highlighted.
+- **Without selection** — Falls back to the block at cursor position, using its pre-computed embedding from Smart Connections.
 
 ## Development
 
@@ -61,7 +64,7 @@ bunx vitest run
 # Run E2E tests (requires Obsidian installed)
 bunx playwright test tests/e2e/context-menu.spec.ts tests/e2e/sidebar-view.spec.ts \
   tests/e2e/navigation.spec.ts tests/e2e/copy-list.spec.ts tests/e2e/smoke.spec.ts \
-  --config tests/playwright.config.ts
+  tests/e2e/selection-search.spec.ts --config tests/playwright.config.ts
 ```
 
 ### Architecture
