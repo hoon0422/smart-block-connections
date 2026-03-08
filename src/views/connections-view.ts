@@ -54,17 +54,7 @@ export class ConnectionsView extends ItemView {
       });
     }
 
-    // Deduplicate by stripped key (e.g. "note.md#A" and "note.md#A#{1}"),
-    // keeping the entry with the higher score
-    const seen = new Map<string, ConnectionResult>();
-    for (const r of results) {
-      const normalized = stripSubBlockSuffix(r.key);
-      const existing = seen.get(normalized);
-      if (!existing || r.score > existing.score) {
-        seen.set(normalized, r);
-      }
-    }
-    return Array.from(seen.values());
+    return results;
   }
 
   private render() {
@@ -143,10 +133,9 @@ export class ConnectionsView extends ItemView {
         cls: "scbe-score"
       });
 
-      // Title (clickable → navigate) — strip SC sub-block suffix for display
-      const displayKey = stripSubBlockSuffix(result.key);
+      // Title (clickable → navigate)
       const title = item.createEl("a", {
-        text: displayKey,
+        text: result.key,
         cls: "scbe-result-title",
         href: "#"
       });
@@ -184,7 +173,7 @@ export class ConnectionsView extends ItemView {
       });
       insertBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        this.insertLink(displayKey);
+        this.insertLink(stripSubBlockSuffix(result.key));
       });
       const insertWithTextBtn = actions.createEl("button", {
         text: "Insert with text",
@@ -192,7 +181,7 @@ export class ConnectionsView extends ItemView {
       });
       insertWithTextBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        this.insertLinkWithText(displayKey);
+        this.insertLinkWithText(stripSubBlockSuffix(result.key));
       });
     }
   }
